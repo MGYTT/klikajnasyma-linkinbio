@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import LinkCard from "@/components/LinkCard";
 import Avatar from "@/components/Avatar";
 import SupportGoal  from "@/components/SupportGoal";
+import DonateTicker from "@/components/DonateTicker";
 
 /* ═══════════════════════════════════════════════════════
    FLOATING EMOJIS
@@ -235,6 +236,20 @@ export default function Home() {
 
       {/* ── Floating emojis layer ─────────────────────── */}
       <FloatingEmojis />
+
+{/* ── Donate Ticker ───────────────────────────── */}
+<motion.div
+  initial={{ opacity: 0, y: -10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+  style={{
+    width:        "100%",
+    maxWidth:     "24rem",
+    marginBottom: "1.5rem",
+  }}
+>
+  <DonateTicker />
+</motion.div>
 
       {/* ══════════════════════════════════════════════
           PROFILE SECTION

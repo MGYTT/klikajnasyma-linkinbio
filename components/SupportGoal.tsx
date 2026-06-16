@@ -14,27 +14,35 @@ interface Supporter {
   time:   string;
 }
 
+interface GoalData {
+  current:    number;
+  target:     number;
+  label:      string;
+  reward:     string;
+  currency:   string;
+  supporters: Supporter[];
+}
+
 /* ═══════════════════════════════════════════════════════
-   CONFIG
+   FALLBACK DATA (gdy JSON niedostępny)
 ═══════════════════════════════════════════════════════ */
 
-const GOAL_CONFIG = {
-  current:  21,      // aktualna kwota w PLN
-  target:   400,     // cel w PLN
+const FALLBACK: GoalData = {
+  current:  21,
+  target:   400,
   label:    "Upgrade Stanowiska 🎙️",
   reward:   "Dziękuję każdej osobie za wsparcie! Razem dojedziemy do celu 🚀",
   currency: "PLN",
+  supporters: [
+    { name: "Iza",        emoji: "🔥", amount: "5,00 PLN", time: "rok temu" },
+    { name: "Akwasowiec", emoji: "💛", amount: "6,00 PLN", time: "rok temu" },
+    { name: "Mdz",        emoji: "⭐", amount: "5,00 PLN", time: "rok temu" },
+    { name: "Iza",        emoji: "🌊", amount: "5,00 PLN", time: "rok temu" },
+  ],
 };
 
-const RECENT_SUPPORTERS: Supporter[] = [
-  { name: "Iza",        emoji: "🔥", amount: "5,00 PLN",  time: "rok temu" },
-  { name: "Akwasowiec", emoji: "💛", amount: "6,00 PLN",  time: "rok temu" },
-  { name: "Mdz",        emoji: "⭐", amount: "5,00 PLN",  time: "rok temu" },
-  { name: "Iza",        emoji: "🌊", amount: "5,00 PLN",  time: "rok temu" },
-];
-
 /* ═══════════════════════════════════════════════════════
-   ANIMATED FLOAT NUMBER (obsługuje dziesiętne)
+   ANIMATED AMOUNT
 ═══════════════════════════════════════════════════════ */
 
 function AnimatedAmount({ value }: { value: number }) {
@@ -44,7 +52,7 @@ function AnimatedAmount({ value }: { value: number }) {
   const [display, setDisplay] = useState("0.00");
 
   useEffect(() => {
-    const timeout = setTimeout(() => motionVal.set(value), 300);
+    const timeout = setTimeout(() => motionVal.set(value), 400);
     return () => clearTimeout(timeout);
   }, [value, motionVal]);
 
@@ -52,19 +60,12 @@ function AnimatedAmount({ value }: { value: number }) {
     return displayed.on("change", setDisplay);
   }, [displayed]);
 
-  // Split on decimal for big/small styling
   const [intPart, decPart] = display.split(".");
 
   return (
     <>
       <span>{intPart}</span>
-      <span
-        style={{
-          fontSize:   "clamp(1rem, 4vw, 1.3rem)",
-          opacity:    0.55,
-          fontWeight: 700,
-        }}
-      >
+      <span style={{ fontSize: "clamp(1rem, 4vw, 1.3rem)", opacity: 0.55, fontWeight: 700 }}>
         ,{decPart}
       </span>
     </>
@@ -72,7 +73,7 @@ function AnimatedAmount({ value }: { value: number }) {
 }
 
 /* ═══════════════════════════════════════════════════════
-   MILESTONE MARKERS
+   MILESTONE MARKER
 ═══════════════════════════════════════════════════════ */
 
 function MilestoneMarker({
@@ -115,15 +116,15 @@ function MilestoneMarker({
       />
       <div
         style={{
-          position:   "absolute",
-          top:        "16px",
-          left:       "50%",
-          transform:  "translateX(-50%)",
-          fontSize:   "9px",
-          color:      reached ? "#ff8c00" : "#ccc",
-          fontWeight: 700,
-          whiteSpace: "nowrap",
-          transition: "color 0.3s",
+          position:      "absolute",
+          top:           "16px",
+          left:          "50%",
+          transform:     "translateX(-50%)",
+          fontSize:      "9px",
+          color:         reached ? "#ff8c00" : "#ccc",
+          fontWeight:    700,
+          whiteSpace:    "nowrap",
+          transition:    "color 0.3s",
           letterSpacing: "0.01em",
         }}
       >
@@ -137,13 +138,7 @@ function MilestoneMarker({
    SUPPORTER PILL
 ═══════════════════════════════════════════════════════ */
 
-function SupporterPill({
-  supporter,
-  index,
-}: {
-  supporter: Supporter;
-  index:     number;
-}) {
+function SupporterPill({ supporter, index }: { supporter: Supporter; index: number }) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -170,11 +165,10 @@ function SupporterPill({
         boxShadow:           hovered
           ? "0 4px 16px rgba(255,150,50,0.12)"
           : "0 1px 4px rgba(0,0,0,0.04)",
-        transition: "background 0.2s, border 0.2s, box-shadow 0.2s",
-        cursor:     "default",
+        transition:          "background 0.2s, border 0.2s, box-shadow 0.2s",
+        cursor:              "default",
       }}
     >
-      {/* Emoji avatar */}
       <div
         style={{
           width:          "30px",
@@ -192,48 +186,39 @@ function SupporterPill({
         {supporter.emoji}
       </div>
 
-      {/* Name + time */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
-            fontSize:     "12px",
-            fontWeight:   600,
-            color:        "#333",
-            whiteSpace:   "nowrap",
-            overflow:     "hidden",
-            textOverflow: "ellipsis",
-            letterSpacing:"-0.01em",
+            fontSize:      "12px",
+            fontWeight:    600,
+            color:         "#333",
+            whiteSpace:    "nowrap",
+            overflow:      "hidden",
+            textOverflow:  "ellipsis",
+            letterSpacing: "-0.01em",
           }}
         >
           {supporter.name}
         </div>
-        <div
-          style={{
-            fontSize:   "10px",
-            color:      "#c0a070",
-            marginTop:  "1px",
-            fontWeight: 500,
-          }}
-        >
+        <div style={{ fontSize: "10px", color: "#c0a070", marginTop: "1px", fontWeight: 500 }}>
           {supporter.time}
         </div>
       </div>
 
-      {/* Amount badge */}
       <motion.div
         animate={{ scale: hovered ? 1.06 : 1 }}
         transition={{ duration: 0.2 }}
         style={{
-          fontSize:     "11px",
-          fontWeight:   700,
-          color:        "#ff8c00",
-          background:   "rgba(255,140,0,0.10)",
-          border:       "1px solid rgba(255,140,0,0.18)",
-          padding:      "3px 8px",
-          borderRadius: "999px",
-          whiteSpace:   "nowrap",
-          flexShrink:   0,
-          letterSpacing:"-0.01em",
+          fontSize:      "11px",
+          fontWeight:    700,
+          color:         "#ff8c00",
+          background:    "rgba(255,140,0,0.10)",
+          border:        "1px solid rgba(255,140,0,0.18)",
+          padding:       "3px 8px",
+          borderRadius:  "999px",
+          whiteSpace:    "nowrap",
+          flexShrink:    0,
+          letterSpacing: "-0.01em",
         }}
       >
         +{supporter.amount}
@@ -254,29 +239,13 @@ function CircularProgress({ pct }: { pct: number }) {
   const offset      = circumference * (1 - Math.min(pct, 1));
 
   return (
-    <svg
-      width={radius * 2}
-      height={radius * 2}
-      style={{ transform: "rotate(-90deg)", flexShrink: 0 }}
-    >
-      {/* Track */}
-      <circle
-        cx={radius}
-        cy={radius}
-        r={normalised}
-        fill="none"
-        stroke="rgba(0,0,0,0.07)"
-        strokeWidth={stroke}
-      />
-      {/* Fill */}
+    <svg width={radius * 2} height={radius * 2} style={{ transform: "rotate(-90deg)", flexShrink: 0 }}>
+      <circle cx={radius} cy={radius} r={normalised}
+        fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth={stroke} />
       <motion.circle
-        cx={radius}
-        cy={radius}
-        r={normalised}
-        fill="none"
-        stroke="url(#arcGrad)"
-        strokeWidth={stroke}
-        strokeLinecap="round"
+        cx={radius} cy={radius} r={normalised}
+        fill="none" stroke="url(#arcGrad)"
+        strokeWidth={stroke} strokeLinecap="round"
         strokeDasharray={circumference}
         initial={{ strokeDashoffset: circumference }}
         animate={{ strokeDashoffset: offset }}
@@ -294,15 +263,106 @@ function CircularProgress({ pct }: { pct: number }) {
 }
 
 /* ═══════════════════════════════════════════════════════
+   LOADING SKELETON
+═══════════════════════════════════════════════════════ */
+
+function Skeleton() {
+  return (
+    <div
+      style={{
+        borderRadius:         "22px",
+        background:           "rgba(255,255,255,0.45)",
+        border:               "1.5px solid rgba(255,255,255,0.85)",
+        backdropFilter:       "blur(24px)",
+        WebkitBackdropFilter: "blur(24px)",
+        padding:              "20px 16px",
+        display:              "flex",
+        flexDirection:        "column",
+        gap:                  "12px",
+      }}
+    >
+      {[80, 100, 60, 40].map((w, i) => (
+        <motion.div
+          key={i}
+          animate={{ opacity: [0.4, 0.8, 0.4] }}
+          transition={{ duration: 1.4, repeat: Infinity, delay: i * 0.15 }}
+          style={{
+            height:       "12px",
+            width:        `${w}%`,
+            borderRadius: "999px",
+            background:   "rgba(255,180,60,0.15)",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
    SUPPORT GOAL — MAIN
 ═══════════════════════════════════════════════════════ */
 
 export default function SupportGoal() {
+  const [data,           setData]           = useState<GoalData | null>(null);
+  const [loading,        setLoading]        = useState(true);
   const [showSupporters, setShowSupporters] = useState(false);
+  const [lastUpdated,    setLastUpdated]    = useState<string>("");
 
-  const pct     = GOAL_CONFIG.current / GOAL_CONFIG.target;
-  const pctDisp = Math.round(pct * 100);
-  const remaining = GOAL_CONFIG.target - GOAL_CONFIG.current;
+  /* ── Fetch JSON ───────────────────────────────────── */
+  useEffect(() => {
+    const load = () => {
+      fetch(`/support-goal.json?t=${Date.now()}`) // cache bust
+        .then((r) => {
+          if (!r.ok) throw new Error("fetch failed");
+          return r.json();
+        })
+        .then((json: GoalData) => {
+          setData(json);
+          setLastUpdated(new Date().toLocaleTimeString("pl-PL", {
+            hour:   "2-digit",
+            minute: "2-digit",
+          }));
+          setLoading(false);
+        })
+        .catch(() => {
+          setData(FALLBACK);
+          setLoading(false);
+        });
+    };
+
+    load();
+
+    // Auto-refresh co 60 sekund
+    const interval = setInterval(load, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  /* ── Loading state ────────────────────────────────── */
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 22 }}
+        animate={{ opacity: 1, y: 0  }}
+        transition={{ duration: 0.58, delay: 0.96 }}
+        style={{ width: "100%", maxWidth: "24rem" }}
+      >
+        <Skeleton />
+      </motion.div>
+    );
+  }
+
+  const goal      = data!;
+  const pct       = goal.current / goal.target;
+  const pctDisp   = Math.round(pct * 100);
+  const remaining = +(goal.target - goal.current).toFixed(2);
+
+  /* ── Milestones (dynamiczne na podstawie targetu) ── */
+  const milestones = [
+    { pct: 25,  value: goal.target * 0.25, label: `${goal.target * 0.25} zł`  },
+    { pct: 50,  value: goal.target * 0.50, label: `${goal.target * 0.50} zł`  },
+    { pct: 75,  value: goal.target * 0.75, label: `${goal.target * 0.75} zł`  },
+    { pct: 100, value: goal.target,        label: `${goal.target} 🏆`          },
+  ];
 
   return (
     <motion.div
@@ -318,15 +378,12 @@ export default function SupportGoal() {
           border:               "1.5px solid rgba(255,255,255,0.88)",
           backdropFilter:       "blur(24px)",
           WebkitBackdropFilter: "blur(24px)",
-          boxShadow:
-            "0 6px 32px rgba(255,150,50,0.12), inset 0 1.5px 0 rgba(255,255,255,0.95)",
-          overflow: "hidden",
+          boxShadow:            "0 6px 32px rgba(255,150,50,0.12), inset 0 1.5px 0 rgba(255,255,255,0.95)",
+          overflow:             "hidden",
         }}
       >
 
-        {/* ══════════════════════════════════════
-            TOP BANNER
-        ══════════════════════════════════════ */}
+        {/* ══ TOP BANNER ══════════════════════════════ */}
         <div
           style={{
             background:   "linear-gradient(135deg, rgba(255,210,80,0.20), rgba(255,120,50,0.13))",
@@ -347,8 +404,22 @@ export default function SupportGoal() {
               flex:          1,
             }}
           >
-            {GOAL_CONFIG.label}
+            {goal.label}
           </span>
+
+          {/* Last updated indicator */}
+          {lastUpdated && (
+            <span
+              style={{
+                fontSize:   "9px",
+                color:      "#ccc",
+                fontWeight: 500,
+                flexShrink: 0,
+              }}
+            >
+              ↻ {lastUpdated}
+            </span>
+          )}
 
           {/* Pulsing % badge */}
           <motion.div
@@ -369,9 +440,7 @@ export default function SupportGoal() {
           </motion.div>
         </div>
 
-        {/* ══════════════════════════════════════
-            MAIN BODY
-        ══════════════════════════════════════ */}
+        {/* ══ MAIN BODY ════════════════════════════════ */}
         <div
           style={{
             padding:       "16px 16px 18px",
@@ -381,7 +450,7 @@ export default function SupportGoal() {
           }}
         >
 
-          {/* ── BIG AMOUNT COUNTER ────────────── */}
+          {/* ── Amount counter ──────────────────────── */}
           <div
             style={{
               display:        "flex",
@@ -390,34 +459,24 @@ export default function SupportGoal() {
               gap:            "16px",
             }}
           >
-            {/* Circular arc */}
             <div style={{ position: "relative", flexShrink: 0 }}>
               <CircularProgress pct={pct} />
-              {/* Center emoji */}
               <div
                 style={{
-                  position:  "absolute",
-                  inset:     0,
-                  display:   "flex",
-                  alignItems:"center",
-                  justifyContent:"center",
-                  fontSize:  "14px",
+                  position:       "absolute",
+                  inset:          0,
+                  display:        "flex",
+                  alignItems:     "center",
+                  justifyContent: "center",
+                  fontSize:       "14px",
                 }}
               >
                 💰
               </div>
             </div>
 
-            {/* Amount display */}
             <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-              {/* Current */}
-              <div
-                style={{
-                  display:    "flex",
-                  alignItems: "baseline",
-                  gap:        "3px",
-                }}
-              >
+              <div style={{ display: "flex", alignItems: "baseline", gap: "3px" }}>
                 <span
                   style={{
                     fontFamily:           "var(--font-syne), sans-serif",
@@ -431,42 +490,20 @@ export default function SupportGoal() {
                     letterSpacing:        "-0.03em",
                   }}
                 >
-                  <AnimatedAmount value={GOAL_CONFIG.current} />
+                  <AnimatedAmount value={goal.current} />
                 </span>
-                <span
-                  style={{
-                    fontSize:   "13px",
-                    fontWeight: 700,
-                    color:      "#ffaa55",
-                    marginBottom:"2px",
-                  }}
-                >
-                  {GOAL_CONFIG.currency}
+                <span style={{ fontSize: "13px", fontWeight: 700, color: "#ffaa55", marginBottom: "2px" }}>
+                  {goal.currency}
                 </span>
               </div>
 
-              {/* Target row */}
-              <div
-                style={{
-                  display:    "flex",
-                  alignItems: "center",
-                  gap:        "5px",
-                }}
-              >
+              <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
                 <span style={{ fontSize: "11px", color: "#ccc" }}>cel:</span>
-                <span
-                  style={{
-                    fontSize:   "13px",
-                    fontWeight: 700,
-                    color:      "#bbb",
-                    letterSpacing: "-0.02em",
-                  }}
-                >
-                  {GOAL_CONFIG.target} {GOAL_CONFIG.currency}
+                <span style={{ fontSize: "13px", fontWeight: 700, color: "#bbb", letterSpacing: "-0.02em" }}>
+                  {goal.target} {goal.currency}
                 </span>
               </div>
 
-              {/* Remaining pill */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.85 }}
                 animate={{ opacity: 1, scale: 1   }}
@@ -487,12 +524,12 @@ export default function SupportGoal() {
                 }}
               >
                 <span>⚡</span>
-                <span>Brakuje {remaining} {GOAL_CONFIG.currency}</span>
+                <span>Brakuje {remaining} {goal.currency}</span>
               </motion.div>
             </div>
           </div>
 
-          {/* ── PROGRESS BAR ──────────────────── */}
+          {/* ── Progress bar ────────────────────────── */}
           <div style={{ position: "relative", paddingBottom: "22px" }}>
             <div
               style={{
@@ -503,15 +540,13 @@ export default function SupportGoal() {
                 position:     "relative",
               }}
             >
-              {/* Animated fill */}
               <motion.div
                 initial={{ width: "0%" }}
                 animate={{ width: `${Math.min(pct * 100, 100)}%` }}
                 transition={{ duration: 1.5, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
                 style={{
                   position:     "absolute",
-                  left:         0,
-                  top:          0,
+                  left:         0, top: 0,
                   height:       "100%",
                   borderRadius: "999px",
                   background:   "linear-gradient(to right, #ffd93d, #ff8c00, #ff5722)",
@@ -519,83 +554,72 @@ export default function SupportGoal() {
                 }}
               />
 
-              {/* Striped texture overlay on fill */}
+              {/* Striped texture */}
               <motion.div
                 initial={{ width: "0%", opacity: 0 }}
-                animate={{
-                  width:   `${Math.min(pct * 100, 100)}%`,
-                  opacity: 0.18,
-                }}
+                animate={{ width: `${Math.min(pct * 100, 100)}%`, opacity: 0.18 }}
                 transition={{ duration: 1.5, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
                 style={{
-                  position:     "absolute",
-                  left:         0,
-                  top:          0,
-                  height:       "100%",
-                  borderRadius: "999px",
-                  backgroundImage:
-                    "repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255,255,255,0.3) 4px, rgba(255,255,255,0.3) 8px)",
+                  position:        "absolute",
+                  left:            0, top: 0,
+                  height:          "100%",
+                  borderRadius:    "999px",
+                  backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255,255,255,0.3) 4px, rgba(255,255,255,0.3) 8px)",
+                  pointerEvents:   "none",
+                }}
+              />
+
+              {/* Glowing tip */}
+              <motion.div
+                animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.4, 1] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+                style={{
+                  position:      "absolute",
+                  top:           "50%",
+                  left:          `${Math.min(pct * 100, 99)}%`,
+                  transform:     "translate(-50%, -50%)",
+                  width:         "16px",
+                  height:        "16px",
+                  borderRadius:  "50%",
+                  background:    "#ff8c00",
+                  boxShadow:     "0 0 12px rgba(255,140,0,0.7)",
+                  zIndex:        4,
                   pointerEvents: "none",
                 }}
               />
 
-              {/* Glowing tip pulse */}
-              <motion.div
-                animate={{
-                  opacity: [0.5, 1, 0.5],
-                  scale:   [1, 1.4, 1],
-                }}
-                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-                style={{
-                  position:     "absolute",
-                  top:          "50%",
-                  left:         `${Math.min(pct * 100, 99)}%`,
-                  transform:    "translate(-50%, -50%)",
-                  width:        "16px",
-                  height:       "16px",
-                  borderRadius: "50%",
-                  background:   "#ff8c00",
-                  boxShadow:    "0 0 12px rgba(255,140,0,0.7)",
-                  zIndex:       4,
-                  pointerEvents:"none",
-                }}
-              />
-
-              {/* Milestones */}
-              <MilestoneMarker
-                pct={25}
-                reached={GOAL_CONFIG.current >= 100}
-                label="100 zł"
-              />
-              <MilestoneMarker
-                pct={50}
-                reached={GOAL_CONFIG.current >= 200}
-                label="200 zł"
-              />
-              <MilestoneMarker
-                pct={75}
-                reached={GOAL_CONFIG.current >= 300}
-                label="300 zł"
-              />
-              <MilestoneMarker
-                pct={100}
-                reached={GOAL_CONFIG.current >= GOAL_CONFIG.target}
-                label="400 🏆"
-              />
+              {/* Dynamic milestones */}
+              {milestones.map((m) => (
+                <MilestoneMarker
+                  key={m.pct}
+                  pct={m.pct}
+                  reached={goal.current >= m.value}
+                  label={m.label}
+                />
+              ))}
             </div>
           </div>
 
-          {/* ── MINI STATS ROW ────────────────── */}
-          <div
-            style={{
-              display: "flex",
-              gap:     "8px",
-            }}
-          >
+          {/* ── Mini stats ──────────────────────────── */}
+          <div style={{ display: "flex", gap: "8px" }}>
             {[
-              { label: "Wspierający", value: String(RECENT_SUPPORTERS.length), emoji: "👥" },
-              { label: "Średnio",     value: `${(GOAL_CONFIG.current / RECENT_SUPPORTERS.length).toFixed(1)} zł`, emoji: "📊" },
-              { label: "Pozostało",   value: `${remaining} zł`, emoji: "🏁" },
+              {
+                label: "Wspierający",
+                value: String(goal.supporters.length),
+                emoji: "👥",
+              },
+              {
+                label: "Średnio",
+                value: goal.supporters.length > 0
+                  ? `${(goal.current / goal.supporters.length).toFixed(1)} zł`
+                  : "—",
+                emoji: "📊",
+              },
+              {
+                label: "Pozostało",
+                value: `${remaining} zł`,
+                emoji: "🏁",
+              },
             ].map((stat, i) => (
               <motion.div
                 key={i}
@@ -616,14 +640,7 @@ export default function SupportGoal() {
                 }}
               >
                 <span style={{ fontSize: "14px" }}>{stat.emoji}</span>
-                <span
-                  style={{
-                    fontSize:      "12px",
-                    fontWeight:    700,
-                    color:         "#cc5500",
-                    letterSpacing: "-0.02em",
-                  }}
-                >
+                <span style={{ fontSize: "12px", fontWeight: 700, color: "#cc5500", letterSpacing: "-0.02em" }}>
                   {stat.value}
                 </span>
                 <span style={{ fontSize: "9px", color: "#bbb", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>
@@ -633,7 +650,7 @@ export default function SupportGoal() {
             ))}
           </div>
 
-          {/* ── REWARD HINT ───────────────────── */}
+          {/* ── Reward hint ─────────────────────────── */}
           <div
             style={{
               display:      "flex",
@@ -646,20 +663,12 @@ export default function SupportGoal() {
             }}
           >
             <span style={{ fontSize: "15px", flexShrink: 0 }}>🎁</span>
-            <p
-              style={{
-                fontSize:   "11.5px",
-                color:      "#996000",
-                lineHeight: 1.6,
-                fontWeight: 500,
-                margin:     0,
-              }}
-            >
-              {GOAL_CONFIG.reward}
+            <p style={{ fontSize: "11.5px", color: "#996000", lineHeight: 1.6, fontWeight: 500, margin: 0 }}>
+              {goal.reward}
             </p>
           </div>
 
-          {/* ── CTA BUTTON ────────────────────── */}
+          {/* ── CTA button ──────────────────────────── */}
           <motion.a
             href="https://tipply.pl/@MGYT"
             target="_blank"
@@ -684,19 +693,12 @@ export default function SupportGoal() {
               overflow:       "hidden",
             }}
           >
-            {/* Continuous shimmer */}
             <motion.div
               animate={{ x: ["-120%", "220%"] }}
-              transition={{
-                duration:    2.5,
-                repeat:      Infinity,
-                repeatDelay: 1.8,
-                ease:        "easeInOut",
-              }}
+              transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 1.8, ease: "easeInOut" }}
               style={{
                 position:      "absolute",
-                top:           0,
-                left:          0,
+                top:           0, left: 0,
                 width:         "40%",
                 height:        "100%",
                 background:    "linear-gradient(105deg, transparent, rgba(255,255,255,0.28), transparent)",
@@ -707,7 +709,7 @@ export default function SupportGoal() {
             <span>Wesprzyj mnie teraz</span>
           </motion.a>
 
-          {/* ── SUPPORTERS TOGGLE ─────────────── */}
+          {/* ── Supporters toggle ───────────────────── */}
           <motion.button
             onClick={() => setShowSupporters((s) => !s)}
             whileHover={{ scale: 1.02 }}
@@ -742,9 +744,8 @@ export default function SupportGoal() {
             <span>
               {showSupporters
                 ? "Ukryj wspierających"
-                : `${RECENT_SUPPORTERS.length} ostatnie wsparcia`}
+                : `${goal.supporters.length} ostatnie wsparcia`}
             </span>
-            {/* Live dot */}
             <motion.div
               animate={{ opacity: [1, 0.3, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
@@ -759,7 +760,7 @@ export default function SupportGoal() {
             />
           </motion.button>
 
-          {/* ── SUPPORTERS LIST ───────────────── */}
+          {/* ── Supporters list ─────────────────────── */}
           <motion.div
             initial={false}
             animate={{
@@ -769,15 +770,8 @@ export default function SupportGoal() {
             transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
             style={{ overflow: "hidden" }}
           >
-            <div
-              style={{
-                display:       "flex",
-                flexDirection: "column",
-                gap:           "6px",
-                paddingTop:    "2px",
-              }}
-            >
-              {RECENT_SUPPORTERS.map((s, i) => (
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "2px" }}>
+              {goal.supporters.map((s, i) => (
                 <SupporterPill key={i} supporter={s} index={i} />
               ))}
             </div>

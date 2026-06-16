@@ -1,0 +1,12 @@
+{
+  "current": 12,
+  "target": 400,
+  "label": "Upgrade Stanowiska 🎙️",
+  "reward": "Dziękuję każdej osobie za wsparcie! Razem dojedziemy do celu 🚀",
+  "currency": "PLN",
+  "supporters": [
+    { "name": "Iza",        "emoji": "🔥", "amount": "2,00 PLN", "time": "dzisiaj" },
+    { "name": "Iza", "emoji": "💛", "amount": "5,00 PLN", "time": "rok temu" },
+    { "name": "Mdz",        "emoji": "⭐", "amount": "5,00 PLN", "time": "rok temu" }
+  ]
+}
