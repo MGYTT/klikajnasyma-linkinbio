@@ -1,11 +1,17 @@
 "use client";
 
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  AnimatePresence,
+} from "framer-motion";
 import { useEffect, useState } from "react";
 
-/* ═══════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════
    TYPES
-═══════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════ */
 
 interface Supporter {
   name:   string;
@@ -23,12 +29,12 @@ interface GoalData {
   supporters: Supporter[];
 }
 
-/* ═══════════════════════════════════════════════════════
-   FALLBACK DATA (gdy JSON niedostępny)
-═══════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   FALLBACK
+══════════════════════════════════════════════════════ */
 
 const FALLBACK: GoalData = {
-  current:  21,
+  current:  21.00,
   target:   400,
   label:    "Upgrade Stanowiska 🎙️",
   reward:   "Dziękuję każdej osobie za wsparcie! Razem dojedziemy do celu 🚀",
@@ -41,256 +47,435 @@ const FALLBACK: GoalData = {
   ],
 };
 
-/* ═══════════════════════════════════════════════════════
-   ANIMATED AMOUNT
-═══════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   ANIMATED COUNTER — int duży, grosze małe ale WIDOCZNE
+══════════════════════════════════════════════════════ */
 
-function AnimatedAmount({ value }: { value: number }) {
-  const motionVal = useMotionValue(0);
-  const spring    = useSpring(motionVal, { stiffness: 55, damping: 16 });
-  const displayed = useTransform(spring, (v) => v.toFixed(2));
+function AnimatedCounter({ value }: { value: number }) {
+  const mv     = useMotionValue(0);
+  const spring = useSpring(mv, { stiffness: 40, damping: 12 });
+  const trans  = useTransform(spring, (v) => v.toFixed(2));
   const [display, setDisplay] = useState("0.00");
 
   useEffect(() => {
-    const timeout = setTimeout(() => motionVal.set(value), 400);
-    return () => clearTimeout(timeout);
-  }, [value, motionVal]);
+    const t = setTimeout(() => mv.set(value), 300);
+    return () => clearTimeout(t);
+  }, [value, mv]);
 
-  useEffect(() => {
-    return displayed.on("change", setDisplay);
-  }, [displayed]);
+  useEffect(() => trans.on("change", setDisplay), [trans]);
 
-  const [intPart, decPart] = display.split(".");
+  const dotIdx = display.indexOf(".");
+  const intPart = display.slice(0, dotIdx);
+  const decPart = display.slice(dotIdx + 1);
 
   return (
-    <>
-      <span>{intPart}</span>
-      <span style={{ fontSize: "clamp(1rem, 4vw, 1.3rem)", opacity: 0.55, fontWeight: 700 }}>
-        ,{decPart}
-      </span>
-    </>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   MILESTONE MARKER
-═══════════════════════════════════════════════════════ */
-
-function MilestoneMarker({
-  pct,
-  reached,
-  label,
-}: {
-  pct:     number;
-  reached: boolean;
-  label:   string;
-}) {
-  return (
-    <div
-      style={{
-        position:  "absolute",
-        left:      `${Math.min(pct, 98)}%`,
-        top:       "50%",
-        transform: "translate(-50%, -50%)",
-        zIndex:    3,
-      }}
-    >
-      <motion.div
-        animate={{
-          background: reached
-            ? "linear-gradient(135deg, #ff8c00, #ff5722)"
-            : "rgba(0,0,0,0.10)",
-          boxShadow: reached
-            ? "0 0 12px rgba(255,140,0,0.55)"
-            : "none",
-        }}
-        transition={{ duration: 0.5 }}
+    <div style={{ display: "flex", alignItems: "flex-end", gap: "3px" }}>
+      {/* Integer — bardzo duży */}
+      <span
         style={{
-          width:        "13px",
-          height:       "13px",
-          borderRadius: "50%",
-          border:       reached
-            ? "2px solid rgba(255,255,255,0.95)"
-            : "2px solid rgba(0,0,0,0.12)",
-        }}
-      />
-      <div
-        style={{
-          position:      "absolute",
-          top:           "16px",
-          left:          "50%",
-          transform:     "translateX(-50%)",
-          fontSize:      "9px",
-          color:         reached ? "#ff8c00" : "#ccc",
-          fontWeight:    700,
-          whiteSpace:    "nowrap",
-          transition:    "color 0.3s",
-          letterSpacing: "0.01em",
+          fontFamily:           "var(--font-syne), sans-serif",
+          fontSize:             "clamp(2.8rem, 12vw, 3.6rem)",
+          fontWeight:           900,
+          lineHeight:           1,
+          letterSpacing:        "-0.04em",
+          background:           "linear-gradient(160deg, #ffdd57 0%, #ff9a00 40%, #ff4500 100%)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor:  "transparent",
+          backgroundClip:       "text",
         }}
       >
-        {label}
+        {intPart}
+      </span>
+
+      {/* Decimal separator + grosze — wyraźne, nie ukryte */}
+      <div
+        style={{
+          display:        "flex",
+          flexDirection:  "column",
+          alignItems:     "flex-start",
+          marginBottom:   "6px",
+          gap:            "0px",
+        }}
+      >
+        <span
+          style={{
+            fontSize:   "14px",
+            fontWeight: 800,
+            color:      "#ff9a00",
+            lineHeight: 1.1,
+            opacity:    0.9,
+          }}
+        >
+          ,{decPart}
+        </span>
+        <span
+          style={{
+            fontSize:      "10px",
+            fontWeight:    700,
+            color:         "#ffb347",
+            letterSpacing: "0.02em",
+            opacity:       0.8,
+          }}
+        >
+          PLN
+        </span>
       </div>
     </div>
   );
 }
 
-/* ═══════════════════════════════════════════════════════
-   SUPPORTER PILL
-═══════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   SEGMENTED PROGRESS — nowy styl zamiast zwykłego bara
+══════════════════════════════════════════════════════ */
 
-function SupporterPill({ supporter, index }: { supporter: Supporter; index: number }) {
-  const [hovered, setHovered] = useState(false);
+function SegmentedProgress({
+  pct,
+  current,
+  target,
+}: {
+  pct:     number;
+  current: number;
+  target:  number;
+}) {
+  const segments = 20;
+  const filled   = Math.round(pct * segments);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      {/* Segments */}
+      <div style={{ display: "flex", gap: "3px", alignItems: "center" }}>
+        {Array.from({ length: segments }).map((_, i) => {
+          const isActive  = i < filled;
+          const isEdge    = i === filled - 1;
+          const milestone = i === 4 || i === 9 || i === 14 || i === 19;
+
+          return (
+            <motion.div
+              key={i}
+              initial={{ scaleY: 0, opacity: 0 }}
+              animate={{ scaleY: 1, opacity: 1 }}
+              transition={{
+                delay:    0.4 + i * 0.04,
+                duration: 0.35,
+                ease:     [0.22, 1, 0.36, 1],
+              }}
+              style={{
+                flex:          milestone ? "0 0 6px" : "1",
+                height:        milestone ? "22px" : "14px",
+                borderRadius:  "4px",
+                background:    isActive
+                  ? `linear-gradient(160deg, #ffe566, #ff9a00 60%, #ff4500)`
+                  : "rgba(0,0,0,0.07)",
+                boxShadow:     isEdge
+                  ? "0 0 12px rgba(255,150,0,0.8), 0 0 4px rgba(255,200,0,0.6)"
+                  : isActive
+                  ? "0 2px 6px rgba(255,120,0,0.25)"
+                  : "none",
+                position:      "relative",
+                overflow:      "hidden",
+                transformOrigin: "bottom",
+              }}
+            >
+              {/* Shimmer na aktywnym */}
+              {isActive && (
+                <motion.div
+                  animate={{ x: ["-120%", "220%"] }}
+                  transition={{
+                    duration:    1.8,
+                    repeat:      Infinity,
+                    repeatDelay: Math.random() * 3 + 2,
+                    ease:        "easeInOut",
+                  }}
+                  style={{
+                    position:   "absolute",
+                    inset:      0,
+                    background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)",
+                  }}
+                />
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Labels pod progress */}
+      <div
+        style={{
+          display:        "flex",
+          justifyContent: "space-between",
+          alignItems:     "center",
+        }}
+      >
+        <span style={{ fontSize: "10px", color: "#ff9a00", fontWeight: 700 }}>
+          0 zł
+        </span>
+        {[25, 50, 75].map((p) => (
+          <span
+            key={p}
+            style={{
+              fontSize:  "10px",
+              color:     current >= (target * p / 100) ? "#ff9a00" : "#ddd",
+              fontWeight:700,
+              transition:"color 0.4s",
+            }}
+          >
+            {target * p / 100} zł
+          </span>
+        ))}
+        <span
+          style={{
+            fontSize:  "10px",
+            color:     current >= target ? "#ff9a00" : "#ddd",
+            fontWeight:700,
+          }}
+        >
+          {target} 🏆
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════
+   STAT PILL — nowy styl inline
+══════════════════════════════════════════════════════ */
+
+function StatPill({
+  emoji,
+  value,
+  label,
+  delay,
+}: {
+  emoji: string;
+  value: string;
+  label: string;
+  delay: number;
+}) {
+  const [hov, setHov] = useState(false);
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -14 }}
-      animate={{ opacity: 1, x: 0   }}
-      transition={{ duration: 0.4, delay: 0.08 * index, ease: [0.22, 1, 0.36, 1] }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      initial={{ opacity: 0, scale: 0.88 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        flex:           1,
+        display:        "flex",
+        flexDirection:  "column",
+        alignItems:     "center",
+        gap:            "4px",
+        padding:        "11px 8px",
+        borderRadius:   "16px",
+        background:     hov
+          ? "rgba(255,255,255,0.72)"
+          : "rgba(255,255,255,0.44)",
+        border:         hov
+          ? "1px solid rgba(255,200,80,0.50)"
+          : "1px solid rgba(255,255,255,0.80)",
+        backdropFilter: "blur(12px)",
+        boxShadow:      hov
+          ? "0 8px 24px rgba(255,150,50,0.18)"
+          : "0 2px 8px rgba(0,0,0,0.05)",
+        transition:     "all 0.22s ease",
+        cursor:         "default",
+      }}
+    >
+      <motion.span
+        animate={{ scale: hov ? 1.2 : 1 }}
+        transition={{ type: "spring", stiffness: 300 }}
+        style={{ fontSize: "18px", lineHeight: 1 }}
+      >
+        {emoji}
+      </motion.span>
+      <span
+        style={{
+          fontSize:      "13px",
+          fontWeight:    800,
+          color:         "#cc5500",
+          letterSpacing: "-0.02em",
+          lineHeight:    1,
+        }}
+      >
+        {value}
+      </span>
+      <span
+        style={{
+          fontSize:      "9px",
+          color:         "#bbb",
+          fontWeight:    600,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          textAlign:     "center",
+        }}
+      >
+        {label}
+      </span>
+    </motion.div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════
+   SUPPORTER ROW — minimalistyczny, czytelny
+══════════════════════════════════════════════════════ */
+
+function SupporterRow({
+  s,
+  index,
+}: {
+  s:     Supporter;
+  index: number;
+}) {
+  const [hov, setHov] = useState(false);
+  const medals = ["🥇", "🥈", "🥉"];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.07, duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
       style={{
         display:             "flex",
         alignItems:          "center",
-        gap:                 "9px",
-        padding:             "8px 11px",
-        borderRadius:        "12px",
-        background:          hovered
-          ? "rgba(255,255,255,0.78)"
-          : "rgba(255,255,255,0.52)",
-        border:              hovered
-          ? "1px solid rgba(255,200,80,0.4)"
-          : "1px solid rgba(255,255,255,0.82)",
-        backdropFilter:      "blur(10px)",
-        WebkitBackdropFilter:"blur(10px)",
-        boxShadow:           hovered
-          ? "0 4px 16px rgba(255,150,50,0.12)"
-          : "0 1px 4px rgba(0,0,0,0.04)",
-        transition:          "background 0.2s, border 0.2s, box-shadow 0.2s",
+        gap:                 "10px",
+        padding:             "10px 12px",
+        borderRadius:        "14px",
+        background:          hov
+          ? "rgba(255,255,255,0.80)"
+          : "rgba(255,255,255,0.48)",
+        border:              hov
+          ? "1px solid rgba(255,200,80,0.40)"
+          : "1px solid rgba(255,255,255,0.80)",
+        backdropFilter:      "blur(12px)",
+        WebkitBackdropFilter:"blur(12px)",
+        boxShadow:           hov
+          ? "0 6px 20px rgba(255,150,50,0.14)"
+          : "0 2px 6px rgba(0,0,0,0.04)",
+        transition:          "all 0.2s ease",
         cursor:              "default",
+        overflow:            "hidden",
+        position:            "relative",
       }}
     >
+      {/* Kolorowy lewy border */}
       <div
         style={{
-          width:          "30px",
-          height:         "30px",
-          borderRadius:   "9px",
-          background:     "rgba(255,200,80,0.15)",
+          position:     "absolute",
+          left:         0, top: 0, bottom: 0,
+          width:        "3px",
+          borderRadius: "3px 0 0 3px",
+          background:   index === 0
+            ? "linear-gradient(180deg,#ffd700,#ffaa00)"
+            : index === 1
+            ? "linear-gradient(180deg,#c0c0c0,#999)"
+            : index === 2
+            ? "linear-gradient(180deg,#cd7f32,#a05820)"
+            : "rgba(255,200,80,0.3)",
+          opacity: hov ? 1 : 0.7,
+          transition: "opacity 0.2s",
+        }}
+      />
+
+      {/* Medal lub emoji */}
+      <div
+        style={{
+          width:          "36px",
+          height:         "36px",
+          borderRadius:   "11px",
+          background:     "linear-gradient(135deg,rgba(255,230,100,0.22),rgba(255,160,50,0.14))",
+          border:         "1px solid rgba(255,200,80,0.22)",
           display:        "flex",
           alignItems:     "center",
           justifyContent: "center",
-          fontSize:       "15px",
+          fontSize:       "18px",
           flexShrink:     0,
-          border:         "1px solid rgba(255,200,80,0.2)",
         }}
       >
-        {supporter.emoji}
+        {medals[index] ?? s.emoji}
       </div>
 
+      {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
-            fontSize:      "12px",
-            fontWeight:    600,
-            color:         "#333",
+            fontSize:      "13px",
+            fontWeight:    700,
+            color:         "#222",
+            letterSpacing: "-0.015em",
             whiteSpace:    "nowrap",
             overflow:      "hidden",
             textOverflow:  "ellipsis",
-            letterSpacing: "-0.01em",
           }}
         >
-          {supporter.name}
+          {s.name}
         </div>
-        <div style={{ fontSize: "10px", color: "#c0a070", marginTop: "1px", fontWeight: 500 }}>
-          {supporter.time}
+        <div
+          style={{
+            fontSize:  "10.5px",
+            color:     "#c0a070",
+            fontWeight:500,
+            marginTop: "1px",
+          }}
+        >
+          {s.time}
         </div>
       </div>
 
+      {/* Kwota */}
       <motion.div
-        animate={{ scale: hovered ? 1.06 : 1 }}
-        transition={{ duration: 0.2 }}
+        animate={{ scale: hov ? 1.05 : 1 }}
+        transition={{ type: "spring", stiffness: 300 }}
         style={{
-          fontSize:      "11px",
-          fontWeight:    700,
-          color:         "#ff8c00",
-          background:    "rgba(255,140,0,0.10)",
-          border:        "1px solid rgba(255,140,0,0.18)",
-          padding:       "3px 8px",
+          fontSize:      "12.5px",
+          fontWeight:    800,
+          color:         "#ff7a00",
+          background:    "linear-gradient(135deg,rgba(255,210,80,0.20),rgba(255,140,0,0.12))",
+          border:        "1px solid rgba(255,160,40,0.25)",
+          padding:       "5px 10px",
           borderRadius:  "999px",
           whiteSpace:    "nowrap",
           flexShrink:    0,
           letterSpacing: "-0.01em",
         }}
       >
-        +{supporter.amount}
+        +{s.amount}
       </motion.div>
     </motion.div>
   );
 }
 
-/* ═══════════════════════════════════════════════════════
-   CIRCULAR PROGRESS ARC
-═══════════════════════════════════════════════════════ */
-
-function CircularProgress({ pct }: { pct: number }) {
-  const radius      = 28;
-  const stroke      = 4;
-  const normalised  = radius - stroke / 2;
-  const circumference = 2 * Math.PI * normalised;
-  const offset      = circumference * (1 - Math.min(pct, 1));
-
-  return (
-    <svg width={radius * 2} height={radius * 2} style={{ transform: "rotate(-90deg)", flexShrink: 0 }}>
-      <circle cx={radius} cy={radius} r={normalised}
-        fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth={stroke} />
-      <motion.circle
-        cx={radius} cy={radius} r={normalised}
-        fill="none" stroke="url(#arcGrad)"
-        strokeWidth={stroke} strokeLinecap="round"
-        strokeDasharray={circumference}
-        initial={{ strokeDashoffset: circumference }}
-        animate={{ strokeDashoffset: offset }}
-        transition={{ duration: 1.6, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      />
-      <defs>
-        <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%"   stopColor="#ffd93d" />
-          <stop offset="50%"  stopColor="#ff8c00" />
-          <stop offset="100%" stopColor="#ff5722" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   LOADING SKELETON
-═══════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   SKELETON
+══════════════════════════════════════════════════════ */
 
 function Skeleton() {
   return (
     <div
       style={{
-        borderRadius:         "22px",
-        background:           "rgba(255,255,255,0.45)",
-        border:               "1.5px solid rgba(255,255,255,0.85)",
+        borderRadius:         "24px",
+        background:           "rgba(255,255,255,0.50)",
+        border:               "1.5px solid rgba(255,255,255,0.88)",
         backdropFilter:       "blur(24px)",
         WebkitBackdropFilter: "blur(24px)",
-        padding:              "20px 16px",
+        padding:              "24px 18px",
         display:              "flex",
         flexDirection:        "column",
-        gap:                  "12px",
+        gap:                  "16px",
       }}
     >
-      {[80, 100, 60, 40].map((w, i) => (
+      {[70, 100, 85, 50, 90].map((w, i) => (
         <motion.div
           key={i}
-          animate={{ opacity: [0.4, 0.8, 0.4] }}
-          transition={{ duration: 1.4, repeat: Infinity, delay: i * 0.15 }}
+          animate={{ opacity: [0.25, 0.55, 0.25] }}
+          transition={{ duration: 1.6, repeat: Infinity, delay: i * 0.1 }}
           style={{
-            height:       "12px",
+            height:       i === 1 ? "20px" : "12px",
             width:        `${w}%`,
             borderRadius: "999px",
-            background:   "rgba(255,180,60,0.15)",
+            background:   "linear-gradient(90deg,rgba(255,210,80,0.18),rgba(255,160,60,0.10))",
           }}
         />
       ))}
@@ -298,52 +483,44 @@ function Skeleton() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════
-   SUPPORT GOAL — MAIN
-═══════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   MAIN COMPONENT
+══════════════════════════════════════════════════════ */
 
 export default function SupportGoal() {
   const [data,           setData]           = useState<GoalData | null>(null);
   const [loading,        setLoading]        = useState(true);
   const [showSupporters, setShowSupporters] = useState(false);
-  const [lastUpdated,    setLastUpdated]    = useState<string>("");
+  const [lastUpdated,    setLastUpdated]    = useState("");
+  const [pulse,          setPulse]          = useState(false);
 
-  /* ── Fetch JSON ───────────────────────────────────── */
   useEffect(() => {
     const load = () => {
-      fetch(`/support-goal.json?t=${Date.now()}`) // cache bust
-        .then((r) => {
-          if (!r.ok) throw new Error("fetch failed");
-          return r.json();
-        })
+      fetch(`/support-goal.json?t=${Date.now()}`)
+        .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
         .then((json: GoalData) => {
           setData(json);
-          setLastUpdated(new Date().toLocaleTimeString("pl-PL", {
-            hour:   "2-digit",
-            minute: "2-digit",
-          }));
+          setLastUpdated(
+            new Date().toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })
+          );
+          setPulse(true);
+          setTimeout(() => setPulse(false), 800);
           setLoading(false);
         })
-        .catch(() => {
-          setData(FALLBACK);
-          setLoading(false);
-        });
+        .catch(() => { setData(FALLBACK); setLoading(false); });
     };
 
     load();
-
-    // Auto-refresh co 60 sekund
-    const interval = setInterval(load, 60_000);
-    return () => clearInterval(interval);
+    const iv = setInterval(load, 60_000);
+    return () => clearInterval(iv);
   }, []);
 
-  /* ── Loading state ────────────────────────────────── */
   if (loading) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 22 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0  }}
-        transition={{ duration: 0.58, delay: 0.96 }}
+        transition={{ duration: 0.5, delay: 0.9 }}
         style={{ width: "100%", maxWidth: "24rem" }}
       >
         <Skeleton />
@@ -352,87 +529,115 @@ export default function SupportGoal() {
   }
 
   const goal      = data!;
-  const pct       = goal.current / goal.target;
+  const pct       = Math.min(goal.current / goal.target, 1);
   const pctDisp   = Math.round(pct * 100);
   const remaining = +(goal.target - goal.current).toFixed(2);
 
-  /* ── Milestones (dynamiczne na podstawie targetu) ── */
-  const milestones = [
-    { pct: 25,  value: goal.target * 0.25, label: `${goal.target * 0.25} zł`  },
-    { pct: 50,  value: goal.target * 0.50, label: `${goal.target * 0.50} zł`  },
-    { pct: 75,  value: goal.target * 0.75, label: `${goal.target * 0.75} zł`  },
-    { pct: 100, value: goal.target,        label: `${goal.target} 🏆`          },
-  ];
-
   return (
     <motion.div
-      initial={{ opacity: 0, y: 22 }}
+      initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0  }}
-      transition={{ duration: 0.58, delay: 0.96, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.6, delay: 0.94, ease: [0.22, 1, 0.36, 1] }}
       style={{ width: "100%", maxWidth: "24rem" }}
     >
+      {/* Karta */}
       <div
         style={{
-          borderRadius:         "22px",
-          background:           "rgba(255,255,255,0.50)",
-          border:               "1.5px solid rgba(255,255,255,0.88)",
-          backdropFilter:       "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
-          boxShadow:            "0 6px 32px rgba(255,150,50,0.12), inset 0 1.5px 0 rgba(255,255,255,0.95)",
-          overflow:             "hidden",
+          borderRadius:         "24px",
+          background:           "rgba(255,255,255,0.54)",
+          border:               "1.5px solid rgba(255,255,255,0.92)",
+          backdropFilter:       "blur(28px)",
+          WebkitBackdropFilter: "blur(28px)",
+          boxShadow:
+            "0 8px 40px rgba(255,140,50,0.14), 0 2px 8px rgba(0,0,0,0.05), inset 0 1.5px 0 rgba(255,255,255,0.98)",
+          overflow:   "hidden",
+          position:   "relative",
         }}
       >
 
-        {/* ══ TOP BANNER ══════════════════════════════ */}
+        {/* Gradient top line */}
+        <motion.div
+          animate={{
+            backgroundPosition: ["0% 0%", "200% 0%"],
+          }}
+          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+          style={{
+            position:           "absolute",
+            top: 0, left: 0, right: 0,
+            height:             "3px",
+            background:         "linear-gradient(90deg,#ffe066,#ff9a00,#ff4500,#ff9a00,#ffe066)",
+            backgroundSize:     "200% 100%",
+          }}
+        />
+
+        {/* ── HEADER ─────────────────────────────── */}
         <div
           style={{
-            background:   "linear-gradient(135deg, rgba(255,210,80,0.20), rgba(255,120,50,0.13))",
-            padding:      "13px 16px 11px",
-            borderBottom: "1px solid rgba(255,210,80,0.18)",
+            background:   "linear-gradient(135deg,rgba(255,230,90,0.20),rgba(255,130,50,0.12))",
+            padding:      "14px 16px 12px",
+            borderBottom: "1px solid rgba(255,220,100,0.16)",
             display:      "flex",
             alignItems:   "center",
             gap:          "8px",
+            marginTop:    "3px",
           }}
         >
-          <span style={{ fontSize: "17px" }}>🎯</span>
+          {/* Target emoji bouncing */}
+          <motion.span
+            animate={{ y: [0, -3, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            style={{ fontSize: "18px", lineHeight: 1, flexShrink: 0 }}
+          >
+            🎯
+          </motion.span>
+
           <span
             style={{
-              fontSize:      "12px",
+              fontSize:      "12.5px",
               fontWeight:    700,
-              color:         "#cc5500",
-              letterSpacing: "-0.01em",
+              color:         "#b84d00",
+              letterSpacing: "-0.015em",
               flex:          1,
             }}
           >
             {goal.label}
           </span>
 
-          {/* Last updated indicator */}
+          {/* Refresh time */}
           {lastUpdated && (
-            <span
+            <motion.span
+              key={lastUpdated}
+              animate={{ opacity: pulse ? [0, 1] : 0.45 }}
+              transition={{ duration: 0.4 }}
               style={{
                 fontSize:   "9px",
-                color:      "#ccc",
-                fontWeight: 500,
+                color:      pulse ? "#ff9a00" : "#ccc",
+                fontWeight: 600,
                 flexShrink: 0,
               }}
             >
               ↻ {lastUpdated}
-            </span>
+            </motion.span>
           )}
 
-          {/* Pulsing % badge */}
+          {/* % badge */}
           <motion.div
-            animate={{ scale: [1, 1.07, 1] }}
-            transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+            animate={{
+              boxShadow: [
+                "0 2px 10px rgba(255,140,0,0.30)",
+                "0 4px 20px rgba(255,140,0,0.60)",
+                "0 2px 10px rgba(255,140,0,0.30)",
+              ],
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
             style={{
-              fontSize:     "11px",
-              fontWeight:   700,
+              fontSize:     "11.5px",
+              fontWeight:   800,
               color:        "#fff",
-              background:   "linear-gradient(135deg, #ff8c00, #ff5722)",
-              padding:      "3px 9px",
+              background:   "linear-gradient(135deg,#ffaa00,#ff4500)",
+              padding:      "4px 11px",
               borderRadius: "999px",
-              boxShadow:    "0 2px 10px rgba(255,140,0,0.35)",
+              letterSpacing:"-0.01em",
               flexShrink:   0,
             }}
           >
@@ -440,342 +645,316 @@ export default function SupportGoal() {
           </motion.div>
         </div>
 
-        {/* ══ MAIN BODY ════════════════════════════════ */}
+        {/* ── BODY ───────────────────────────────── */}
         <div
           style={{
-            padding:       "16px 16px 18px",
+            padding:       "20px 16px 22px",
             display:       "flex",
             flexDirection: "column",
-            gap:           "14px",
+            gap:           "18px",
           }}
         >
 
-          {/* ── Amount counter ──────────────────────── */}
+          {/* ── HERO COUNT ─────────────────────────── */}
           <div
             style={{
               display:        "flex",
+              flexDirection:  "column",
               alignItems:     "center",
-              justifyContent: "center",
-              gap:            "16px",
+              padding:        "20px 16px 16px",
+              borderRadius:   "20px",
+              background:     "linear-gradient(160deg,rgba(255,252,235,0.9),rgba(255,240,200,0.7))",
+              border:         "1px solid rgba(255,220,100,0.30)",
+              boxShadow:      "inset 0 1px 0 rgba(255,255,255,0.95), 0 4px 18px rgba(255,160,50,0.10)",
+              position:       "relative",
+              overflow:       "hidden",
+              gap:            "4px",
             }}
           >
-            <div style={{ position: "relative", flexShrink: 0 }}>
-              <CircularProgress pct={pct} />
-              <div
-                style={{
-                  position:       "absolute",
-                  inset:          0,
-                  display:        "flex",
-                  alignItems:     "center",
-                  justifyContent: "center",
-                  fontSize:       "14px",
-                }}
-              >
-                💰
-              </div>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "3px" }}>
-                <span
-                  style={{
-                    fontFamily:           "var(--font-syne), sans-serif",
-                    fontSize:             "clamp(2rem, 9vw, 2.6rem)",
-                    fontWeight:           800,
-                    background:           "linear-gradient(135deg, #ff8c00, #ff5722)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor:  "transparent",
-                    backgroundClip:       "text",
-                    lineHeight:           1,
-                    letterSpacing:        "-0.03em",
-                  }}
-                >
-                  <AnimatedAmount value={goal.current} />
-                </span>
-                <span style={{ fontSize: "13px", fontWeight: 700, color: "#ffaa55", marginBottom: "2px" }}>
-                  {goal.currency}
-                </span>
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                <span style={{ fontSize: "11px", color: "#ccc" }}>cel:</span>
-                <span style={{ fontSize: "13px", fontWeight: 700, color: "#bbb", letterSpacing: "-0.02em" }}>
-                  {goal.target} {goal.currency}
-                </span>
-              </div>
-
-              <motion.div
-                initial={{ opacity: 0, scale: 0.85 }}
-                animate={{ opacity: 1, scale: 1   }}
-                transition={{ delay: 1.2, duration: 0.4 }}
-                style={{
-                  display:      "inline-flex",
-                  alignItems:   "center",
-                  gap:          "4px",
-                  marginTop:    "4px",
-                  padding:      "3px 9px",
-                  borderRadius: "999px",
-                  background:   "rgba(255,200,80,0.13)",
-                  border:       "1px solid rgba(255,200,80,0.25)",
-                  fontSize:     "10.5px",
-                  fontWeight:   600,
-                  color:        "#cc6600",
-                  width:        "fit-content",
-                }}
-              >
-                <span>⚡</span>
-                <span>Brakuje {remaining} {goal.currency}</span>
-              </motion.div>
-            </div>
-          </div>
-
-          {/* ── Progress bar ────────────────────────── */}
-          <div style={{ position: "relative", paddingBottom: "22px" }}>
+            {/* Subtle background glow */}
             <div
               style={{
-                height:       "10px",
-                borderRadius: "999px",
-                background:   "rgba(0,0,0,0.07)",
-                overflow:     "visible",
-                position:     "relative",
+                position:     "absolute",
+                top:          "-30px",
+                left:         "50%",
+                transform:    "translateX(-50%)",
+                width:        "200px",
+                height:       "120px",
+                borderRadius: "50%",
+                background:   "radial-gradient(circle,rgba(255,180,60,0.25) 0%,transparent 70%)",
+                filter:       "blur(20px)",
+                pointerEvents:"none",
+              }}
+            />
+
+            {/* Animated number */}
+            <AnimatedCounter value={goal.current} />
+
+            {/* Cel */}
+            <div
+              style={{
+                display:    "flex",
+                alignItems: "center",
+                gap:        "6px",
+                marginTop:  "2px",
               }}
             >
-              <motion.div
-                initial={{ width: "0%" }}
-                animate={{ width: `${Math.min(pct * 100, 100)}%` }}
-                transition={{ duration: 1.5, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              <span
                 style={{
-                  position:     "absolute",
-                  left:         0, top: 0,
-                  height:       "100%",
-                  borderRadius: "999px",
-                  background:   "linear-gradient(to right, #ffd93d, #ff8c00, #ff5722)",
-                  boxShadow:    "0 2px 10px rgba(255,140,0,0.40)",
-                }}
-              />
-
-              {/* Striped texture */}
-              <motion.div
-                initial={{ width: "0%", opacity: 0 }}
-                animate={{ width: `${Math.min(pct * 100, 100)}%`, opacity: 0.18 }}
-                transition={{ duration: 1.5, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                style={{
-                  position:        "absolute",
-                  left:            0, top: 0,
-                  height:          "100%",
-                  borderRadius:    "999px",
-                  backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255,255,255,0.3) 4px, rgba(255,255,255,0.3) 8px)",
-                  pointerEvents:   "none",
-                }}
-              />
-
-              {/* Glowing tip */}
-              <motion.div
-                animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.4, 1] }}
-                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-                style={{
-                  position:      "absolute",
-                  top:           "50%",
-                  left:          `${Math.min(pct * 100, 99)}%`,
-                  transform:     "translate(-50%, -50%)",
-                  width:         "16px",
-                  height:        "16px",
-                  borderRadius:  "50%",
-                  background:    "#ff8c00",
-                  boxShadow:     "0 0 12px rgba(255,140,0,0.7)",
-                  zIndex:        4,
-                  pointerEvents: "none",
-                }}
-              />
-
-              {/* Dynamic milestones */}
-              {milestones.map((m) => (
-                <MilestoneMarker
-                  key={m.pct}
-                  pct={m.pct}
-                  reached={goal.current >= m.value}
-                  label={m.label}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* ── Mini stats ──────────────────────────── */}
-          <div style={{ display: "flex", gap: "8px" }}>
-            {[
-              {
-                label: "Wspierający",
-                value: String(goal.supporters.length),
-                emoji: "👥",
-              },
-              {
-                label: "Średnio",
-                value: goal.supporters.length > 0
-                  ? `${(goal.current / goal.supporters.length).toFixed(1)} zł`
-                  : "—",
-                emoji: "📊",
-              },
-              {
-                label: "Pozostało",
-                value: `${remaining} zł`,
-                emoji: "🏁",
-              },
-            ].map((stat, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0  }}
-                transition={{ delay: 0.7 + i * 0.1, duration: 0.4 }}
-                style={{
-                  flex:           1,
-                  display:        "flex",
-                  flexDirection:  "column",
-                  alignItems:     "center",
-                  gap:            "3px",
-                  padding:        "9px 6px",
-                  borderRadius:   "12px",
-                  background:     "rgba(255,255,255,0.45)",
-                  border:         "1px solid rgba(255,255,255,0.82)",
-                  backdropFilter: "blur(8px)",
+                  fontSize:     "10px",
+                  color:        "#bbb",
+                  fontWeight:   600,
+                  background:   "rgba(0,0,0,0.05)",
+                  padding:      "2px 7px",
+                  borderRadius: "6px",
                 }}
               >
-                <span style={{ fontSize: "14px" }}>{stat.emoji}</span>
-                <span style={{ fontSize: "12px", fontWeight: 700, color: "#cc5500", letterSpacing: "-0.02em" }}>
-                  {stat.value}
-                </span>
-                <span style={{ fontSize: "9px", color: "#bbb", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                  {stat.label}
-                </span>
-              </motion.div>
-            ))}
+                cel
+              </span>
+              <span
+                style={{
+                  fontSize:   "14px",
+                  fontWeight: 700,
+                  color:      "#999",
+                  letterSpacing:"-0.02em",
+                }}
+              >
+                {goal.target},00 {goal.currency}
+              </span>
+            </div>
+
+            {/* Brakuje pill */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 1.4 }}
+              style={{
+                display:      "flex",
+                alignItems:   "center",
+                gap:          "5px",
+                marginTop:    "8px",
+                padding:      "5px 12px",
+                borderRadius: "999px",
+                background:   "rgba(255,210,80,0.16)",
+                border:       "1px solid rgba(255,210,80,0.32)",
+                fontSize:     "11.5px",
+                fontWeight:   700,
+                color:        "#cc6000",
+                letterSpacing:"-0.01em",
+              }}
+            >
+              <motion.span
+                animate={{ rotate: [0, 20, -10, 0] }}
+                transition={{ duration: 2.5, repeat: Infinity, delay: 2 }}
+              >
+                ⚡
+              </motion.span>
+              Brakuje jeszcze {remaining},00 {goal.currency}
+            </motion.div>
           </div>
 
-          {/* ── Reward hint ─────────────────────────── */}
+          {/* ── SEGMENTED PROGRESS ─────────────────── */}
+          <SegmentedProgress
+            pct={pct}
+            current={goal.current}
+            target={goal.target}
+          />
+
+          {/* ── STATS ──────────────────────────────── */}
+          <div style={{ display: "flex", gap: "8px" }}>
+            <StatPill
+              emoji="👥"
+              value={String(goal.supporters.length)}
+              label="Wspierający"
+              delay={0.55}
+            />
+            <StatPill
+              emoji="💰"
+              value={
+                goal.supporters.length > 0
+                  ? `${(goal.current / goal.supporters.length).toFixed(1)} zł`
+                  : "—"
+              }
+              label="Średnio"
+              delay={0.65}
+            />
+            <StatPill
+              emoji="🏁"
+              value={`${remaining} zł`}
+              label="Pozostało"
+              delay={0.75}
+            />
+          </div>
+
+          {/* ── REWARD ─────────────────────────────── */}
           <div
             style={{
               display:      "flex",
               alignItems:   "flex-start",
-              gap:          "8px",
-              padding:      "11px 13px",
-              borderRadius: "14px",
-              background:   "rgba(255,210,80,0.10)",
-              border:       "1px solid rgba(255,210,80,0.24)",
+              gap:          "10px",
+              padding:      "13px 14px",
+              borderRadius: "16px",
+              background:   "linear-gradient(135deg,rgba(255,235,100,0.14),rgba(255,180,60,0.08))",
+              border:       "1px solid rgba(255,220,100,0.26)",
+              boxShadow:    "inset 0 1px 0 rgba(255,255,255,0.80)",
             }}
           >
-            <span style={{ fontSize: "15px", flexShrink: 0 }}>🎁</span>
-            <p style={{ fontSize: "11.5px", color: "#996000", lineHeight: 1.6, fontWeight: 500, margin: 0 }}>
+            <motion.span
+              animate={{ rotate: [0, -12, 8, 0], scale: [1, 1.1, 1] }}
+              transition={{ duration: 4, repeat: Infinity }}
+              style={{ fontSize: "20px", flexShrink: 0 }}
+            >
+              🎁
+            </motion.span>
+            <p
+              style={{
+                fontSize:   "11.5px",
+                color:      "#995500",
+                lineHeight: 1.65,
+                fontWeight: 500,
+                margin:     0,
+              }}
+            >
               {goal.reward}
             </p>
           </div>
 
-          {/* ── CTA button ──────────────────────────── */}
+          {/* ── CTA ────────────────────────────────── */}
           <motion.a
             href="https://tipply.pl/@MGYT"
             target="_blank"
             rel="noopener noreferrer"
             whileHover={{ scale: 1.03, y: -2 }}
-            whileTap={{   scale: 0.97 }}
+            whileTap={{   scale: 0.97,  y: 0 }}
+            style={{
+              display:        "flex",
+              alignItems:     "center",
+              justifyContent: "center",
+              gap:            "10px",
+              padding:        "15px",
+              borderRadius:   "16px",
+              background:     "linear-gradient(135deg,#ffb300 0%,#ff6600 55%,#ff3d00 100%)",
+              color:          "#fff",
+              fontWeight:     800,
+              fontSize:       "15px",
+              textDecoration: "none",
+              boxShadow:
+                "0 8px 30px rgba(255,120,0,0.45), inset 0 1px 0 rgba(255,255,255,0.22)",
+              letterSpacing:  "-0.015em",
+              position:       "relative",
+              overflow:       "hidden",
+            }}
+          >
+            {/* Shimmer */}
+            <motion.div
+              animate={{ x: ["-130%", "230%"] }}
+              transition={{ duration: 3, repeat: Infinity, repeatDelay: 1, ease: "easeInOut" }}
+              style={{
+                position:      "absolute",
+                inset:         0,
+                width:         "45%",
+                background:    "linear-gradient(105deg,transparent,rgba(255,255,255,0.32),transparent)",
+                pointerEvents: "none",
+              }}
+            />
+            <motion.span
+              animate={{ scale: [1, 1.18, 1], rotate: [0, -12, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              style={{ fontSize: "19px" }}
+            >
+              💛
+            </motion.span>
+            <span>Wesprzyj mnie teraz</span>
+            <motion.span
+              animate={{ x: [0, 5, 0] }}
+              transition={{ duration: 1.1, repeat: Infinity }}
+              style={{ opacity: 0.85 }}
+            >
+              →
+            </motion.span>
+          </motion.a>
+
+          {/* ── TOGGLE ─────────────────────────────── */}
+          <motion.button
+            onClick={() => setShowSupporters((s) => !s)}
+            whileHover={{ scale: 1.015 }}
+            whileTap={{   scale: 0.985 }}
             style={{
               display:        "flex",
               alignItems:     "center",
               justifyContent: "center",
               gap:            "8px",
-              padding:        "14px",
-              borderRadius:   "15px",
-              background:     "linear-gradient(135deg, #ff8c00 0%, #ff5722 100%)",
-              color:          "#fff",
-              fontWeight:     700,
-              fontSize:       "14px",
-              textDecoration: "none",
-              boxShadow:      "0 7px 28px rgba(255,140,0,0.38)",
-              letterSpacing:  "-0.01em",
-              position:       "relative",
-              overflow:       "hidden",
-            }}
-          >
-            <motion.div
-              animate={{ x: ["-120%", "220%"] }}
-              transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 1.8, ease: "easeInOut" }}
-              style={{
-                position:      "absolute",
-                top:           0, left: 0,
-                width:         "40%",
-                height:        "100%",
-                background:    "linear-gradient(105deg, transparent, rgba(255,255,255,0.28), transparent)",
-                pointerEvents: "none",
-              }}
-            />
-            <span style={{ fontSize: "16px" }}>💛</span>
-            <span>Wesprzyj mnie teraz</span>
-          </motion.a>
-
-          {/* ── Supporters toggle ───────────────────── */}
-          <motion.button
-            onClick={() => setShowSupporters((s) => !s)}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{   scale: 0.98 }}
-            style={{
-              background:     "rgba(255,255,255,0.38)",
-              border:         "1px solid rgba(255,255,255,0.75)",
-              borderRadius:   "12px",
+              padding:        "10px",
+              borderRadius:   "14px",
+              background:     "rgba(255,255,255,0.40)",
+              border:         "1px solid rgba(255,255,255,0.78)",
               cursor:         "pointer",
-              display:        "flex",
-              alignItems:     "center",
-              justifyContent: "center",
-              gap:            "6px",
-              fontSize:       "11.5px",
-              color:          "#bba070",
-              fontWeight:     600,
-              padding:        "9px 0",
               outline:        "none",
               width:          "100%",
+              fontSize:       "12px",
+              fontWeight:     600,
+              color:          "#bb9060",
               backdropFilter: "blur(8px)",
               letterSpacing:  "0.01em",
               transition:     "background 0.2s",
             }}
           >
+            {/* Chevron */}
             <motion.span
               animate={{ rotate: showSupporters ? 180 : 0 }}
-              transition={{ duration: 0.3 }}
-              style={{ display: "inline-block", fontSize: "10px" }}
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              style={{ fontSize: "9px", display: "inline-block" }}
             >
               ▼
             </motion.span>
+
             <span>
               {showSupporters
                 ? "Ukryj wspierających"
-                : `${goal.supporters.length} ostatnie wsparcia`}
+                : `Pokaż ${goal.supporters.length} wspierających`}
             </span>
+
+            {/* Live dot — poprawiony, nie migający jak szalony */}
             <motion.div
-              animate={{ opacity: [1, 0.3, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
+              animate={{ scale: [1, 1.6, 1], opacity: [0.9, 0.4, 0.9] }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
               style={{
-                width:        "6px",
-                height:       "6px",
+                width:        "7px",
+                height:       "7px",
                 borderRadius: "50%",
-                background:   "#ff8c00",
-                boxShadow:    "0 0 5px rgba(255,140,0,0.6)",
+                background:   "#ff9a00",
+                boxShadow:    "0 0 6px rgba(255,150,0,0.6)",
                 flexShrink:   0,
               }}
             />
           </motion.button>
 
-          {/* ── Supporters list ─────────────────────── */}
-          <motion.div
-            initial={false}
-            animate={{
-              height:  showSupporters ? "auto" : 0,
-              opacity: showSupporters ? 1 : 0,
-            }}
-            transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-            style={{ overflow: "hidden" }}
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "2px" }}>
-              {goal.supporters.map((s, i) => (
-                <SupporterPill key={i} supporter={s} index={i} />
-              ))}
-            </div>
-          </motion.div>
+          {/* ── SUPPORTERS LIST ────────────────────── */}
+          <AnimatePresence initial={false}>
+            {showSupporters && (
+              <motion.div
+                key="list"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{    height: 0, opacity: 0 }}
+                transition={{ duration: 0.40, ease: [0.22, 1, 0.36, 1] }}
+                style={{ overflow: "hidden" }}
+              >
+                <div
+                  style={{
+                    display:       "flex",
+                    flexDirection: "column",
+                    gap:           "7px",
+                    paddingTop:    "2px",
+                  }}
+                >
+                  {goal.supporters.map((s, i) => (
+                    <SupporterRow key={i} s={s} index={i} />
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
         </div>
       </div>
