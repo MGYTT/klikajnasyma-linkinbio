@@ -8,6 +8,7 @@ import {
   AnimatePresence,
 } from "framer-motion";
 import { useRef, useState, type ReactNode } from "react";
+import { useTrackClick } from "@/hooks/useTrackClick";
 
 /* ══════════════════════════════════════════════════════
    TYPES
@@ -32,7 +33,7 @@ interface Ripple { id: number; x: number; y: number; size: number; }
 
 function useRipple() {
   const [ripples, setRipples] = useState<Ripple[]>([]);
-
+const trackClick = useTrackClick();
   function addRipple(e: React.MouseEvent<HTMLAnchorElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
     const size = Math.max(rect.width, rect.height) * 2.0;
@@ -183,6 +184,7 @@ export default function LinkCard({
 
   function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
     addRipple(e);
+    trackClick(label);
     setClicked(true);
     // Haptic na mobile
     if (typeof navigator !== "undefined" && navigator.vibrate) {
