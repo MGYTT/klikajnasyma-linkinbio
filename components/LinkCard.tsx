@@ -7,7 +7,7 @@ import {
   useTransform,
   AnimatePresence,
 } from "framer-motion";
-import { useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useTrackClick } from "@/hooks/useTrackClick";
 
 /* ══════════════════════════════════════════════════════
@@ -21,8 +21,8 @@ interface LinkCardProps {
   icon:      ReactNode;
   iconBg:    string;
   delay?:    number;
-  badge?:    string;       // opcjonalny badge np. "HOT" "NOWE"
-  pulse?:    boolean;      // czy ikona ma pulsować
+  badge?:    string;
+  pulse?:    boolean;
 }
 
 /* ══════════════════════════════════════════════════════
@@ -33,7 +33,7 @@ interface Ripple { id: number; x: number; y: number; size: number; }
 
 function useRipple() {
   const [ripples, setRipples] = useState<Ripple[]>([]);
-const trackClick = useTrackClick();
+
   function addRipple(e: React.MouseEvent<HTMLAnchorElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
     const size = Math.max(rect.width, rect.height) * 2.0;
@@ -67,13 +67,16 @@ function useTilt() {
     rawY.set((e.clientY - r.top)  / r.height - 0.5);
   }
 
-  function onReset() { rawX.set(0); rawY.set(0); }
+  function onReset() {
+    rawX.set(0);
+    rawY.set(0);
+  }
 
   return { rotateX, rotateY, glareX, glareY, onMouseMove, onReset };
 }
 
 /* ══════════════════════════════════════════════════════
-   ARROW
+   ARROW ICON
 ══════════════════════════════════════════════════════ */
 
 function Arrow() {
@@ -91,79 +94,28 @@ function Arrow() {
 }
 
 /* ══════════════════════════════════════════════════════
-   EXTERNAL BADGE
+   EXTERNAL ICON
 ══════════════════════════════════════════════════════ */
 
 function ExtIcon() {
   return (
     <svg
       width="10" height="10" viewBox="0 0 10 10" fill="none"
-      style={{ marginLeft: "4px", opacity: 0.40, flexShrink: 0 }}
+      style={{ marginLeft: "4px", opacity: 0.38, flexShrink: 0 }}
     >
       <path
         d="M1.5 8.5L8.5 1.5M8.5 1.5H4M8.5 1.5V6"
-        stroke="currentColor" strokeWidth="1.4"
-        strokeLinecap="round" strokeLinejoin="round"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );
 }
 
 /* ══════════════════════════════════════════════════════
-   PARTICLE — losowe iskierki przy hover
-══════════════════════════════════════════════════════ */
-
-interface Particle { id: number; x: number; y: number; angle: number; }
-
-function Particles({ active }: { active: boolean }) {
-  const [particles, setParticles] = useState<Particle[]>([]);
-
-  // Generuj cząsteczki gdy active zmienia się na true
-  useState(() => {
-    if (active) {
-      const p = Array.from({ length: 6 }, (_, i) => ({
-        id:    i,
-        x:     40 + Math.random() * 20,
-        y:     50,
-        angle: (i / 6) * 360,
-      }));
-      setParticles(p);
-    } else {
-      setParticles([]);
-    }
-  });
-
-  return (
-    <AnimatePresence>
-      {active && particles.map((p) => (
-        <motion.div
-          key={p.id}
-          initial={{ opacity: 1, scale: 0, x: "48px", y: "24px" }}
-          animate={{
-            opacity: [1, 0.8, 0],
-            scale:   [0, 1, 0.5],
-            x:       `${p.x + Math.cos(p.angle) * 30}px`,
-            y:       `${p.y + Math.sin(p.angle) * 20}px`,
-          }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut", delay: p.id * 0.04 }}
-          style={{
-            position:     "absolute",
-            width:        "5px",
-            height:       "5px",
-            borderRadius: "50%",
-            background:   `hsl(${30 + p.id * 12}, 100%, 65%)`,
-            pointerEvents:"none",
-            zIndex:       10,
-          }}
-        />
-      ))}
-    </AnimatePresence>
-  );
-}
-
-/* ══════════════════════════════════════════════════════
-   LINK CARD — MAIN
+   LINK CARD
 ══════════════════════════════════════════════════════ */
 
 export default function LinkCard({
@@ -172,21 +124,42 @@ export default function LinkCard({
   sublabel,
   icon,
   iconBg,
-  delay   = 0,
+  delay  = 0,
   badge,
-  pulse   = false,
+  pulse  = false,
 }: LinkCardProps) {
-  const { ripples, addRipple }                 = useRipple();
-  const { rotateX, rotateY, glareX, glareY,
-          onMouseMove, onReset }               = useTilt();
-  const [hovered, setHovered]                  = useState(false);
-  const [clicked, setClicked]                  = useState(false);
+  const { ripples, addRipple } = useRipple();
+  const {
+    rotateX, rotateY,
+    glareX,  glareY,
+    onMouseMove, onReset,
+  } = useTilt();
+
+  const trackClick           = useTrackClick();
+  const [hovered, setHovered] = useState(false);
+  const [clicked, setClicked] = useState(false);
+
+  /* ── glare background — obliczony jako string ── */
+  const [glarePos, setGlarePos] = useState("50% 50%");
+
+  function handleMouseMove(e: React.MouseEvent<HTMLAnchorElement>) {
+    onMouseMove(e);
+    const r  = e.currentTarget.getBoundingClientRect();
+    const gx = ((e.clientX - r.left) / r.width  * 100).toFixed(1);
+    const gy = ((e.clientY - r.top)  / r.height * 100).toFixed(1);
+    setGlarePos(`${gx}% ${gy}%`);
+  }
+
+  function handleMouseLeave() {
+    onReset();
+    setHovered(false);
+    setGlarePos("50% 50%");
+  }
 
   function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
     addRipple(e);
     trackClick(label);
     setClicked(true);
-    // Haptic na mobile
     if (typeof navigator !== "undefined" && navigator.vibrate) {
       navigator.vibrate(8);
     }
@@ -198,6 +171,7 @@ export default function LinkCard({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
+      aria-label={label}
       initial={{ opacity: 0, y: 28, scale: 0.95 }}
       animate={{ opacity: 1, y: 0,  scale: 1    }}
       transition={{ duration: 0.58, delay, ease: [0.22, 1, 0.36, 1] }}
@@ -210,35 +184,32 @@ export default function LinkCard({
         borderRadius:   "22px",
         outline:        "none",
         position:       "relative",
+        WebkitTapHighlightColor: "transparent",
       }}
       whileHover={{ scale: 1.028 }}
       whileTap={{   scale: 0.972 }}
-      onMouseMove={onMouseMove}
-      onMouseLeave={() => { onReset(); setHovered(false); }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
       onMouseEnter={() => setHovered(true)}
       onClick={handleClick}
-      aria-label={label}
     >
-      {/* ─── Outer glow (za kartą, nie na niej) ───── */}
+
+      {/* ── Outer glow ─────────────────────────────── */}
       <motion.div
-        animate={{
-          opacity: hovered ? 1 : 0,
-          scale:   hovered ? 1 : 0.85,
-        }}
-        transition={{ duration: 0.35 }}
+        animate={{ opacity: hovered ? 0.22 : 0, scale: hovered ? 1 : 0.88 }}
+        transition={{ duration: 0.32 }}
         style={{
-          position:     "absolute",
-          inset:        "-6px",
-          borderRadius: "28px",
-          background:   `${iconBg.includes("gradient") ? iconBg : `linear-gradient(135deg, ${iconBg}, transparent)`}`,
-          filter:       "blur(18px)",
-          opacity:      0.22,
-          zIndex:       -1,
-          pointerEvents:"none",
+          position:      "absolute",
+          inset:         "-6px",
+          borderRadius:  "28px",
+          background:    iconBg,
+          filter:        "blur(20px)",
+          zIndex:        -1,
+          pointerEvents: "none",
         }}
       />
 
-      {/* ─── Card shell ──────────────────────────── */}
+      {/* ── Card shell ─────────────────────────────── */}
       <div
         style={{
           position:            "relative",
@@ -259,110 +230,92 @@ export default function LinkCard({
           boxShadow:           hovered
             ? "0 12px 48px rgba(255,140,50,0.22), 0 3px 12px rgba(0,0,0,0.08), inset 0 1.5px 0 rgba(255,255,255,0.98)"
             : "0 4px 24px rgba(255,150,50,0.09), 0 1px 5px rgba(0,0,0,0.05), inset 0 1.5px 0 rgba(255,255,255,0.95)",
-          transition:          "background 0.25s, border 0.25s, box-shadow 0.25s",
+          transition:          "background 0.25s ease, border 0.25s ease, box-shadow 0.25s ease",
         }}
       >
 
-        {/* ── Glare — podąża za kursorem ─────────── */}
-        <motion.div
+        {/* ── Glare — state zamiast MotionValue jako CSS ── */}
+        <div
           style={{
             position:      "absolute",
             inset:         0,
             borderRadius:  "22px",
-            background:    `radial-gradient(circle at ${glareX} ${glareY}, rgba(255,255,255,0.28) 0%, transparent 65%)`,
+            background:    `radial-gradient(circle at ${glarePos}, rgba(255,255,255,0.26) 0%, transparent 62%)`,
             opacity:       hovered ? 1 : 0,
             pointerEvents: "none",
             zIndex:        1,
-            transition:    "opacity 0.3s",
+            transition:    "opacity 0.3s ease",
           }}
         />
 
-        {/* ── Shimmer sweep on enter ─────────────── */}
+        {/* ── Shimmer sweep ───────────────────────── */}
         <motion.div
-          initial={{ x: "-110%", opacity: 0 }}
           animate={{
-            x:       hovered ? ["−110%", "210%"] : "-110%",
+            x:       hovered ? "220%" : "-110%",
             opacity: hovered ? 1 : 0,
           }}
-          transition={{ duration: 0.55, ease: "easeOut" }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           style={{
             position:      "absolute",
             top:           0, left: 0,
             width:         "55%",
             height:        "100%",
-            background:    "linear-gradient(105deg, transparent, rgba(255,255,255,0.52), transparent)",
+            background:    "linear-gradient(105deg, transparent, rgba(255,255,255,0.48), transparent)",
             pointerEvents: "none",
             zIndex:        2,
           }}
         />
 
-        {/* ── Top edge highlight ─────────────────── */}
+        {/* ── Top edge glow ───────────────────────── */}
         <motion.div
           animate={{ opacity: hovered ? 1 : 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.28 }}
           style={{
             position:      "absolute",
             top:           0, left: "15%",
             width:         "70%",
             height:        "1px",
-            background:    "linear-gradient(to right, transparent, rgba(255,210,80,0.85), transparent)",
+            background:    "linear-gradient(to right, transparent, rgba(255,210,80,0.80), transparent)",
             pointerEvents: "none",
             zIndex:        2,
           }}
         />
 
-        {/* ── Bottom edge shadow line ────────────── */}
-        <motion.div
-          animate={{ opacity: hovered ? 0.6 : 0 }}
-          transition={{ duration: 0.3 }}
-          style={{
-            position:      "absolute",
-            bottom:        0, left: "20%",
-            width:         "60%",
-            height:        "1px",
-            background:    "linear-gradient(to right, transparent, rgba(255,150,50,0.4), transparent)",
-            pointerEvents: "none",
-            zIndex:        2,
-          }}
-        />
-
-        {/* ── Ripples ────────────────────────────── */}
+        {/* ── Ripples ─────────────────────────────── */}
         {ripples.map((r) => (
           <motion.span
             key={r.id}
-            initial={{ scale: 0, opacity: 0.45 }}
-            animate={{ scale: 1, opacity: 0    }}
-            transition={{ duration: 0.75, ease: "easeOut" }}
+            initial={{ scale: 0, opacity: 0.5 }}
+            animate={{ scale: 1, opacity: 0   }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
             style={{
-              position:     "absolute",
-              left:         r.x,
-              top:          r.y,
-              width:        r.size,
-              height:       r.size,
-              borderRadius: "50%",
-              background:   "rgba(255,180,60,0.22)",
-              pointerEvents:"none",
-              zIndex:       3,
+              position:      "absolute",
+              left:          r.x,
+              top:           r.y,
+              width:         r.size,
+              height:        r.size,
+              borderRadius:  "50%",
+              background:    "rgba(255,180,60,0.20)",
+              pointerEvents: "none",
+              zIndex:        3,
             }}
           />
         ))}
 
-        {/* ── ICON BADGE ─────────────────────────── */}
+        {/* ── ICON ────────────────────────────────── */}
         <div style={{ position: "relative", flexShrink: 0, zIndex: 4 }}>
-          {/* Pulsing ring (opcjonalne) */}
+
+          {/* Pulse ring */}
           {pulse && (
             <motion.div
-              animate={{
-                scale:   [1, 1.55, 1],
-                opacity: [0.5, 0,   0.5],
-              }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+              animate={{ scale: [1, 1.6, 1], opacity: [0.55, 0, 0.55] }}
+              transition={{ duration: 2.2, repeat: Infinity, ease: "easeOut" }}
               style={{
                 position:     "absolute",
                 inset:        "-5px",
-                borderRadius: "18px",
+                borderRadius: "19px",
                 background:   iconBg,
-                filter:       "blur(2px)",
+                filter:       "blur(3px)",
                 zIndex:       -1,
               }}
             />
@@ -372,14 +325,10 @@ export default function LinkCard({
             animate={{
               scale:  hovered ? 1.10 : 1,
               rotate: hovered ? [0, -7, 7, -3, 0] : 0,
-              boxShadow: hovered
-                ? ["0 4px 14px rgba(0,0,0,0.18)", "0 8px 24px rgba(0,0,0,0.22)"]
-                : "0 3px 10px rgba(0,0,0,0.12)",
             }}
             transition={{
-              scale:     { duration: 0.28, ease: "easeOut" },
-              rotate:    { duration: 0.5,  ease: "easeInOut", delay: 0.04 },
-              boxShadow: { duration: 0.28 },
+              scale:  { duration: 0.26, ease: "easeOut"   },
+              rotate: { duration: 0.48, ease: "easeInOut", delay: 0.04 },
             }}
             style={{
               width:          "50px",
@@ -392,45 +341,51 @@ export default function LinkCard({
               color:          "#fff",
               position:       "relative",
               overflow:       "hidden",
+              boxShadow:      hovered
+                ? "0 8px 22px rgba(0,0,0,0.20)"
+                : "0 3px 10px rgba(0,0,0,0.12)",
+              transition:     "box-shadow 0.26s ease",
             }}
           >
-            {/* Gloss overlay na ikonie */}
+            {/* Gloss */}
             <div
               style={{
-                position:     "absolute",
-                top:          0, left: 0,
-                width:        "100%",
-                height:       "50%",
-                borderRadius: "15px 15px 0 0",
-                background:   "linear-gradient(180deg, rgba(255,255,255,0.28) 0%, transparent 100%)",
-                pointerEvents:"none",
+                position:      "absolute",
+                top: 0, left: 0,
+                width:         "100%",
+                height:        "50%",
+                borderRadius:  "15px 15px 0 0",
+                background:    "linear-gradient(180deg, rgba(255,255,255,0.26) 0%, transparent 100%)",
+                pointerEvents: "none",
               }}
             />
-            <div style={{ position: "relative", zIndex: 1 }}>{icon}</div>
+            <div style={{ position: "relative", zIndex: 1 }}>
+              {icon}
+            </div>
           </motion.div>
 
-          {/* ── Badge (HOT / NOWE) ─────────────── */}
+          {/* Badge */}
           {badge && (
             <motion.div
-              initial={{ scale: 0, rotate: -12 }}
+              initial={{ scale: 0, rotate: -15 }}
               animate={{ scale: 1, rotate: -8  }}
-              transition={{ delay: delay + 0.3, type: "spring", stiffness: 260 }}
+              transition={{ delay: delay + 0.28, type: "spring", stiffness: 260, damping: 16 }}
               style={{
-                position:     "absolute",
-                top:          "-8px",
-                right:        "-10px",
-                background:   "linear-gradient(135deg,#ff4757,#ff6b81)",
-                color:        "#fff",
-                fontSize:     "8px",
-                fontWeight:   800,
-                padding:      "2px 5px",
-                borderRadius: "6px",
-                boxShadow:    "0 2px 8px rgba(255,70,87,0.5)",
-                letterSpacing:"0.04em",
-                textTransform:"uppercase",
-                border:       "1.5px solid rgba(255,255,255,0.9)",
-                whiteSpace:   "nowrap",
-                zIndex:       5,
+                position:      "absolute",
+                top:           "-8px",
+                right:         "-10px",
+                background:    "linear-gradient(135deg, #ff4757, #ff6b81)",
+                color:         "#fff",
+                fontSize:      "9px",
+                fontWeight:    800,
+                padding:       "2px 6px",
+                borderRadius:  "7px",
+                boxShadow:     "0 2px 8px rgba(255,70,87,0.45)",
+                letterSpacing: "0.03em",
+                border:        "1.5px solid rgba(255,255,255,0.92)",
+                whiteSpace:    "nowrap",
+                zIndex:        5,
+                lineHeight:    1.4,
               }}
             >
               {badge}
@@ -438,77 +393,67 @@ export default function LinkCard({
           )}
         </div>
 
-        {/* ── TEXT ───────────────────────────────── */}
+        {/* ── TEXT ────────────────────────────────── */}
         <div style={{ flex: 1, minWidth: 0, zIndex: 4 }}>
-          {/* Label */}
-          <div
-            style={{
-              display:      "flex",
-              alignItems:   "center",
-              gap:          "0px",
-            }}
-          >
-            <motion.span
-              animate={{ color: hovered ? "#111" : "#2a2a2a" }}
-              transition={{ duration: 0.2 }}
+
+          {/* Label row */}
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <span
               style={{
-                fontSize:     "15.5px",
-                fontWeight:   700,
-                lineHeight:   1.3,
-                whiteSpace:   "nowrap",
-                overflow:     "hidden",
-                textOverflow: "ellipsis",
-                letterSpacing:"-0.015em",
+                fontSize:      "15.5px",
+                fontWeight:    700,
+                color:         hovered ? "#111" : "#2a2a2a",
+                lineHeight:    1.3,
+                whiteSpace:    "nowrap",
+                overflow:      "hidden",
+                textOverflow:  "ellipsis",
+                letterSpacing: "-0.015em",
+                transition:    "color 0.2s ease",
               }}
             >
               {label}
-            </motion.span>
+            </span>
             <ExtIcon />
           </div>
 
           {/* Sublabel */}
-          <AnimatePresence>
-            {sublabel && (
-              <motion.div
-                initial={{ opacity: 0, y: -3 }}
-                animate={{ opacity: hovered ? 0.80 : 0.50, y: 0 }}
-                transition={{ duration: 0.22 }}
-                style={{
-                  fontSize:     "11.5px",
-                  color:        "#999",
-                  marginTop:    "3px",
-                  whiteSpace:   "nowrap",
-                  overflow:     "hidden",
-                  textOverflow: "ellipsis",
-                  letterSpacing:"0.01em",
-                }}
-              >
-                {sublabel}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {sublabel && (
+            <div
+              style={{
+                fontSize:      "11.5px",
+                color:         "#999",
+                marginTop:     "3px",
+                whiteSpace:    "nowrap",
+                overflow:      "hidden",
+                textOverflow:  "ellipsis",
+                letterSpacing: "0.01em",
+                opacity:       hovered ? 0.8 : 0.5,
+                transition:    "opacity 0.22s ease",
+              }}
+            >
+              {sublabel}
+            </div>
+          )}
 
-          {/* Animated underline on hover */}
+          {/* Animated underline */}
           <motion.div
             animate={{ scaleX: hovered ? 1 : 0, opacity: hovered ? 1 : 0 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
             style={{
               height:          "1.5px",
-              marginTop:       "4px",
-              background:      "linear-gradient(to right, rgba(255,160,50,0.8), transparent)",
+              marginTop:       "5px",
+              background:      "linear-gradient(to right, rgba(255,160,50,0.85), transparent)",
               borderRadius:    "999px",
               transformOrigin: "left",
-              width:           "70%",
+              width:           "68%",
             }}
           />
         </div>
 
-        {/* ── ARROW ──────────────────────────────── */}
+        {/* ── ARROW ───────────────────────────────── */}
         <motion.div
-          animate={{
-            x: hovered ? 5 : 0,
-          }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          animate={{ x: hovered ? 5 : 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 22 }}
           style={{
             flexShrink:     0,
             zIndex:         4,
@@ -529,9 +474,8 @@ export default function LinkCard({
               background:   "rgba(255,160,50,0.13)",
             }}
           />
-
           <motion.div
-            animate={{ color: hovered ? "#ff8c00" : "#ddd" }}
+            animate={{ color: hovered ? "#ff8c00" : "#ccc" }}
             transition={{ duration: 0.22 }}
             style={{ display: "flex", alignItems: "center" }}
           >
@@ -541,25 +485,27 @@ export default function LinkCard({
 
       </div>
 
-      {/* ── Click feedback overlay ─────────────────── */}
+      {/* ── Click flash overlay ────────────────────── */}
       <AnimatePresence>
         {clicked && (
           <motion.div
-            initial={{ opacity: 0.3 }}
-            animate={{ opacity: 0 }}
-            exit={{    opacity: 0 }}
+            key="flash"
+            initial={{ opacity: 0.35 }}
+            animate={{ opacity: 0    }}
+            exit={{    opacity: 0    }}
             transition={{ duration: 0.5 }}
             style={{
               position:      "absolute",
               inset:         0,
               borderRadius:  "22px",
-              background:    "rgba(255,200,80,0.15)",
+              background:    "rgba(255,200,80,0.16)",
               pointerEvents: "none",
               zIndex:        10,
             }}
           />
         )}
       </AnimatePresence>
+
     </motion.a>
   );
 }
